@@ -1,42 +1,45 @@
-def printJobScheduling(arr, t):
 
-	n = len(arr)
-	# Sort all jobs according to decreasing order of profit
-	for i in range(n):
-		for j in range(n - 1 - i):
-			if arr[j][2] < arr[j + 1][2]:
-				arr[j], arr[j + 1] = arr[j + 1], arr[j]
+def schedule_jobs(currTime, jobs):
+  if not jobs:
+    return 0,list()
+  
+  profitWithCurrentExecuted = 0
+  profitWithOutCurrentExecuted = 0
 
-	# To keep track of free time slots
-	result = [False] * t
+  jobsWithoutCurrent = jobs.copy()
+  jobsWithoutCurrent.pop(0)
+  currentJob = jobs[0]
+  
+  #check if first job can be completed in deadline
+  if currentJob["time"] + currTime <= currentJob["deadline"]:
+    newTime = currentJob["time"] + currTime
+    profitWithCurrentExecuted, schedule = schedule_jobs(newTime, jobsWithoutCurrent)
+    profitWithCurrentExecuted += currentJob["profit"]
 
-	# To store result (Sequence of jobs)
-	job = ['-1'] * t
+  profitWithOutCurrentExecuted, schedule = schedule_jobs(currTime, jobsWithoutCurrent)
 
-	# Iterate through all given jobs
-	for i in range(len(arr)):
-		# Find a free slot for this job (Note that we start from the last possible slot)
-		for j in range(min(t - 1, arr[i][1] - 1), -1, -1):
+  if profitWithCurrentExecuted > profitWithOutCurrentExecuted:
+    schedule.append(currentJob)
+    return profitWithCurrentExecuted, schedule
+  else:
+    return profitWithOutCurrentExecuted, schedule
+    
 
-			# Free slot found
-			if result[j] is False:
-				result[j] = True
-				job[j] = arr[i][0]
-				break
 
-	print(job)
+# Example usage
+jobsList = [
+    {'profit': 50, 'time': 3, 'deadline': 10},
+    {'profit': 20, 'time': 1, 'deadline': 2},
+    {'profit': 40, 'time': 5, 'deadline': 7},
+    {'profit': 70, 'time': 7, 'deadline': 5},
+]
 
-if __name__ == '__main__':
-    n = int(input("Enter the number of jobs: "))
-    arr = []
-    for i in range(n):
-        job = input(f"Enter job {i + 1} details (name deadline profit): ").split()
-        job[1] = int(job[1])  # converting deadline to integer
-        job[2] = int(job[2])  # converting profit to integer
-        arr.append(job)
+jobsList.sort(key= lambda x:x["deadline"])
 
-    t = int(input("Enter the total number of time slots: "))
+total_profit, schedule = schedule_jobs(0, jobsList)
 
-    print("Following is the maximum profit sequence of jobs:")
-    printJobScheduling(arr, t)
 
+schedule.reverse()
+
+print("Total Profit:", total_profit)
+print("Schedule:", [i['profit'] for i in schedule])

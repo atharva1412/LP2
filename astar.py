@@ -1,107 +1,57 @@
-import heapq
 
-class Node:
-    def __init__(self, x, y, parent=None):
-        self.x = x
-        self.y = y
-        self.parent = parent
-        self.g = 0  # Cost from start to current node
-        self.h = 0  # Heuristic cost from current node to goal
-        self.f = 0  # Total cost (g + h)
+def createNode(index, gCost, hCost):
+    dictionary = dict()
+    dictionary["index"] = index
+    dictionary["gCost"] = gCost
+    dictionary["hCost"] = hCost
+    dictionary["fCost"] = hCost + gCost
 
-    def __lt__(self, other):
-        return self.f < other.f
+    return dictionary
 
-def heuristic(node, goal):
-    # Manhattan distance heuristic
-    return abs(node.x - goal.x) + abs(node.y - goal.y)
+def AstarAlgo(graph, heuristic, start, goal):
+    n = len(graph)
 
-def get_neighbors(node, grid):
-    neighbors = []
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # Up, Down, Right, Left
-    for dx, dy in directions:
-        new_x, new_y = node.x + dx, node.y + dy
-        if 0 <= new_x < len(grid) and 0 <= new_y < len(grid[0]) and grid[new_x][new_y] != 1:
-            neighbors.append(Node(new_x, new_y, node))
-    return neighbors
+    open_list = list()
+    visited = set()
 
-def reconstruct_path(node):
-    path = []
-    current = node
-    while current is not None:
-        path.append((current.x, current.y))
-        current = current.parent
-    return path[::-1]
+    # Add the start node to the open list
+    open_list.append(createNode(start, 0, heuristic[start]))
 
-def astar(grid, start, goal):
-    open_set = []
-    closed_set = set()
-    start_node = Node(*start)
-    goal_node = Node(*goal)
-    heapq.heappush(open_set, start_node)
+    while open_list:
+        current = open_list[0]
+        open_list.pop(0)
 
-    while open_set:
-        current_node = heapq.heappop(open_set)
-        if (current_node.x, current_node.y) == (goal_node.x, goal_node.y):
-            return reconstruct_path(current_node)
+        # Check if the current node is the goal
+        if current["index"] == goal:
+            return current["gCost"]
 
-        closed_set.add((current_node.x, current_node.y))
+        visited.add(current["index"])
 
-        for neighbor in get_neighbors(current_node, grid):
-            if (neighbor.x, neighbor.y) in closed_set:
-                continue
+        for neighbor, edgeWeight in graph[current["index"]]:
+            if neighbor not in visited:
+                gCost = current["gCost"] + edgeWeight
+                hCost = heuristic[neighbor]
+                open_list.append(createNode(neighbor, gCost, hCost))
+        
+        open_list.sort(key = lambda x: x["fCost"])
 
-            neighbor.g = current_node.g + 1
-            neighbor.h = heuristic(neighbor, goal_node)
-            neighbor.f = neighbor.g + neighbor.h
 
-            if any(node.f < neighbor.f and (node.x, node.y) == (neighbor.x, neighbor.y) for node in open_set):
-                continue
-
-            heapq.heappush(open_set, neighbor)
-
-    return None
-
-def print_grid_with_path(grid, path):
-    border = '+' + '-' * (len(grid[0]) * 2 - 1) +'-' + '+'
-    print(border)
-    for i in range(len(grid)):
-        row = '|'
-        for j in range(len(grid[i])):
-            if (i, j) in path:
-                row += '  '
-            else:
-                row += f'{grid[i][j]} '
-        row += '|'
-        print(row)
-    print(border)
-
-# Example usage:
-
-grid = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 0, 1, 1, 0, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 0, 1, 1, 1, 0, 1, 1, 1],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 0, 0, 1]
+graph = [
+    [(1, 7), (2, 9), (5, 14)],  # Node 0
+    [(0, 7), (2, 10), (3, 15)],  # Node 1
+    [(0, 9), (1, 10), (5, 2)],  # Node 2
+    [(1, 15), (3, 11), (5, 9)],  # Node 3
+    [(3, 6), (5, 9)],  # Node 4
+    [(0, 14), (2, 2), (3, 9), (4, 9)]  # Node 5
 ]
+heuristic = [11, 10, 6, 0, 0, 0]  # Heuristic values for each node
 
-print("Enter start node coordinates --->")
-sx = int(input('X : '))
-sy = int(input('Y : '))
-print("Enter Goal node coordinates --->")
-gx = int(input('X : '))
-gy = int(input('Y : '))
-start = (sx, sy)
-goal = (gx, gy)
-path = astar(grid, start, goal)
-if path:
-    print_grid_with_path(grid, path)
-    print("Path found:\n", path[:6],'\n',path[6:12],'\n',path[12:])
+start = 0
+goal = 4
+
+shortest_path_cost = AstarAlgo(graph, heuristic, start, goal)
+
+if shortest_path_cost == -1:
+    print(f"No path found from node {start} to node {goal}")
 else:
-    print("No path found")
+    print(f"Shortest path cost from node {start} to node {goal} is: {shortest_path_cost}")
